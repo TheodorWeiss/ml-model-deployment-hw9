@@ -1,0 +1,99 @@
+name: HW9 CI Checks
+
+# Роли инструментов (важно не путать):
+#   GitHub Actions — проверяет код, DAG-синтаксис и IaC при каждом пуше.
+#   Airflow DAG    — оркестрирует CT-цикл переобучения (запускается в Docker).
+#   Terraform      — описывает инфраструктуру декларативно (IaC).
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  python-checks:
+    name: Python syntax & smoke tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Check Python syntax (compileall)
+        run: python -m compileall -q src dags
+
+      - name: Smoke test — full pipeline
+        run: |
+          python -c "
+          import sys; sys.path.insert(0, 'src')
+          from inventory_data import generate_inventory_batch
+          from inventory_train import train
+          from inventory_evaluate import evaluate, compare_with_baseline
+          from inventory_registry import register, promote_to_production
+          import pandas as pd
+
+          df = generate_inventory_batch(n_skus=10, n_days=20, n_stores=2)
+          metrics = train(df)
+          metrics = evaluate(metrics)
+          decision = compare_with_baseline(metrics)
+          print('Smoke test OK. Decision:', decision)
+          assert decision in ('register_model', 'skip_deploy'), 'Unexpected decision'
+          "
+
+      - name: Run MDD latency test
+        run: python src/mdd_latency_test.py
+
+      - name: Validate DAG import (no airflow needed — syntax only)
+        run: python -c "import ast, pathlib; ast.parse(pathlib.Path('dags/inventory_retrain_dag.py').read_text()); print('DAG syntax OK')"
+
+  terraform-checks:
+    name: Terraform IaC checks
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: infra
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.5"
+
+      - name: terraform fmt check
+        run: terraform fmt -check -recursive
+
+      - name: terraform init
+        run: terraform init
+
+      - name: terraform validate
+        run: terraform validate
+
+      - name: terraform plan (dry run)
+        run: terraform plan -no-color -out=tfplan.bin
+        env:
+          TF_VAR_environment: "local"
+
+      - name: terraform plan -destroy (verify destroy path)
+        run: terraform plan -destroy -no-color
+        env:
+          TF_VAR_environment: "local"
+
+      - name: Save plan as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan
+          path: infra/tfplan.bin
+          retention-days: 7

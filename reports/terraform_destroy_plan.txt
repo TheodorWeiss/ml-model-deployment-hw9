@@ -1,0 +1,54 @@
+Terraform destroy план генерируется командой:
+
+  cd infra
+  terraform init
+  terraform plan -destroy -no-color | tee ../reports/terraform_destroy_plan.txt
+
+Ожидаемый вывод (после terraform apply):
+
+  Terraform will perform the following actions:
+
+    # local_file.airflow_dag_manifest will be destroyed
+    - resource "local_file" "airflow_dag_manifest" {
+        - filename = "../reports/terraform_manifests/airflow_dag.json" -> null
+        ...
+      }
+
+    # local_file.manifest_dir_placeholder will be destroyed
+    - resource "local_file" "manifest_dir_placeholder" {
+        - filename = "../reports/terraform_manifests/.gitkeep" -> null
+        ...
+      }
+
+    # local_file.ml_pipeline_manifest will be destroyed
+    - resource "local_file" "ml_pipeline_manifest" {
+        - filename = "../reports/terraform_manifests/ml_pipeline.json" -> null
+        ...
+      }
+
+    # local_file.model_registry_manifest will be destroyed
+    - resource "local_file" "model_registry_manifest" {
+        - filename = "../reports/terraform_manifests/model_registry.json" -> null
+        ...
+      }
+
+    # local_file.monitoring_manifest will be destroyed
+    - resource "local_file" "monitoring_manifest" {
+        - filename = "../reports/terraform_manifests/monitoring.json" -> null
+        ...
+      }
+
+    # local_file.storage_manifest will be destroyed
+    - resource "local_file" "storage_manifest" {
+        - filename = "../reports/terraform_manifests/storage.json" -> null
+        ...
+      }
+
+    # random_id.run_id will be destroyed
+    - resource "random_id" "run_id" {
+        ...
+      }
+
+  Plan: 0 to add, 0 to change, 7 to destroy.
+
+  Деинсталляция инфраструктуры: terraform destroy

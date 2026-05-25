@@ -1,0 +1,130 @@
+version: "3.8"
+
+# -------------------------------------------------------------------------
+# Локальная среда для HW9:
+#   - Airflow standalone  → http://localhost:8080  (admin / admin)
+#   - MinIO (S3-совместимый) → http://localhost:9001  (minioadmin / minioadmin)
+#
+# Запуск:
+#   docker compose up -d
+# Остановка:
+#   docker compose down
+# Полная очистка (удалить volumes):
+#   docker compose down -v
+# -------------------------------------------------------------------------
+
+x-airflow-env: &airflow-env
+  AIRFLOW__CORE__EXECUTOR: LocalExecutor
+  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+  AIRFLOW__CORE__FERNET_KEY: "ZmDfcTF7_60GrrY167zsiPd67pEvs0aGOv2oasOM1Pg="
+  AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+  AIRFLOW__WEBSERVER__SECRET_KEY: "hw9-secret-key-local"
+  # S3 / MinIO настройки для DAG
+  AIRFLOW__CONN_AWS_DEFAULT: "aws://minioadmin:minioadmin@?host=http://minio:9000&region_name=us-east-1"
+  DZ9_USE_S3_SENSOR: "0"          # Переключить на "1" для режима MinIO/S3
+  DZ9_MINIO_ENDPOINT: "http://minio:9000"
+  DZ9_MINIO_ACCESS_KEY: "minioadmin"
+  DZ9_MINIO_SECRET_KEY: "minioadmin"
+  DZ9_MINIO_BUCKET: "inventory-batches"
+  PYTHONPATH: "/opt/airflow"
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      retries: 5
+
+  minio:
+    image: minio/minio:RELEASE.2024-01-16T16-07-38Z
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"   # MinIO S3 API
+      - "9001:9001"   # MinIO Console
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      retries: 5
+
+  # Создаёт бакет при старте
+  minio-init:
+    image: minio/mc:RELEASE.2024-01-16T16-07-38Z
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+        mc alias set local http://minio:9000 minioadmin minioadmin;
+        mc mb --ignore-existing local/inventory-batches;
+        echo 'Bucket ready';
+      "
+
+  airflow-init:
+    image: apache/airflow:2.8.4
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      <<: *airflow-env
+    entrypoint: >
+      /bin/bash -c "
+        airflow db migrate &&
+        airflow users create --username admin --password admin
+          --firstname Admin --lastname User --role Admin
+          --email admin@example.com || true
+      "
+
+  airflow-scheduler:
+    image: apache/airflow:2.8.4
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+    environment:
+      <<: *airflow-env
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./src:/opt/airflow/src
+      - ./data:/opt/airflow/data
+      - ./reports:/opt/airflow/reports
+      - airflow_logs:/opt/airflow/logs
+    command: scheduler
+    restart: unless-stopped
+
+  airflow-webserver:
+    image: apache/airflow:2.8.4
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+    environment:
+      <<: *airflow-env
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./src:/opt/airflow/src
+      - ./data:/opt/airflow/data
+      - ./reports:/opt/airflow/reports
+      - airflow_logs:/opt/airflow/logs
+    ports:
+      - "8080:8080"
+    command: webserver
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      retries: 5
+
+volumes:
+  postgres_data:
+  minio_data:
+  airflow_logs:

@@ -1,0 +1,60 @@
+Terraform план генерируется командой:
+
+  cd infra
+  terraform init
+  terraform plan -no-color | tee ../reports/terraform_plan.txt
+
+Ожидаемый вывод (локальный провайдер):
+
+  Terraform will perform the following actions:
+
+    # local_file.airflow_dag_manifest will be created
+    + resource "local_file" "airflow_dag_manifest" {
+        + content              = (known after apply)
+        + filename             = "../reports/terraform_manifests/airflow_dag.json"
+        ...
+      }
+
+    # local_file.manifest_dir_placeholder will be created
+    + resource "local_file" "manifest_dir_placeholder" {
+        + content              = ""
+        + filename             = "../reports/terraform_manifests/.gitkeep"
+        ...
+      }
+
+    # local_file.ml_pipeline_manifest will be created
+    + resource "local_file" "ml_pipeline_manifest" {
+        + content              = (known after apply)
+        + filename             = "../reports/terraform_manifests/ml_pipeline.json"
+        ...
+      }
+
+    # local_file.model_registry_manifest will be created
+    + resource "local_file" "model_registry_manifest" {
+        + content              = (known after apply)
+        + filename             = "../reports/terraform_manifests/model_registry.json"
+        ...
+      }
+
+    # local_file.monitoring_manifest will be created
+    + resource "local_file" "monitoring_manifest" {
+        + content              = (known after apply)
+        + filename             = "../reports/terraform_manifests/monitoring.json"
+        ...
+      }
+
+    # local_file.storage_manifest will be created
+    + resource "local_file" "storage_manifest" {
+        + content              = (known after apply)
+        + filename             = "../reports/terraform_manifests/storage.json"
+        ...
+      }
+
+    # random_id.run_id will be created
+    + resource "random_id" "run_id" {
+        + b64_std              = (known after apply)
+        + hex                  = (known after apply)
+        ...
+      }
+
+  Plan: 7 to add, 0 to change, 0 to destroy.
