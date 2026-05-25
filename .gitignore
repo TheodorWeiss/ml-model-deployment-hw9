@@ -47,3 +47,34 @@ Thumbs.db
 *.key
 credentials.json
 secrets/
+
+# IDE
+.idea/
+
+# Python cache
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Airflow / runtime generated data
+data/current_metadata.json
+data/current_inventory_batch.csv
+data/history_tmp/
+data/incoming/
+data/inventory_full_history.csv
+
+# Generated batch data
+data/daily_batches/
+
+# Runtime reports and logs
+reports/airflow_sensor_log.md
+reports/airflow_task_logs.md
+reports/current_model_check.md
+reports/data_validation.md
+reports/processed_batches.json
+
+# Terraform local state
+infra/.terraform/
+infra/*.tfstate
+infra/*.tfstate.*
+infra/tfplan
