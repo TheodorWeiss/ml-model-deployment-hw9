@@ -30,30 +30,35 @@ def build_features(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series]:
     df = df.copy()
 
     if TARGET_COL not in df.columns:
-        required_for_fallback = {"stock_qty", "delivery_qty", "sales_qty"}
+        required_for_shift_target = {"store_id", "sku_id", "date", "stock_qty"}
 
-        if required_for_fallback.issubset(df.columns):
-            df[TARGET_COL] = (
-                df["stock_qty"] + df["delivery_qty"] - df["sales_qty"]
-            ).clip(lower=0)
+        if required_for_shift_target.issubset(df.columns):
+            df = df.copy()
+            df["date"] = pd.to_datetime(df["date"])
+            df = df.sort_values(["store_id", "sku_id", "date"])
+
+            df[TARGET_COL] = df.groupby(["store_id", "sku_id"])["stock_qty"].shift(-1)
+            df = df.dropna(subset=[TARGET_COL])
 
             print(
                 f"[inventory_train] Target column '{TARGET_COL}' was missing; "
-                "created fallback target from stock_qty + delivery_qty - sales_qty."
+                "created it as next-day stock_qty using groupby shift."
             )
         else:
-            missing = sorted(required_for_fallback - set(df.columns))
+            missing = sorted(required_for_shift_target - set(df.columns))
             raise ValueError(
                 f"В данных нет целевого столбца '{TARGET_COL}', "
                 f"и невозможно восстановить fallback-target. "
                 f"Отсутствуют колонки: {missing}"
             )
 
-    missing_features = [col for col in FEATURE_COLS if col not in df.columns]
+    feature_cols = ["store_id", "sku_id", "sales_qty", "stock_qty", "price"]
+
+    missing_features = [col for col in feature_cols if col not in df.columns]
     if missing_features:
         raise ValueError(f"В данных нет признаков: {missing_features}")
 
-    X = df[FEATURE_COLS].copy()
+    X = df[feature_cols].copy()
     y = df[TARGET_COL].copy()
 
     return X, y
