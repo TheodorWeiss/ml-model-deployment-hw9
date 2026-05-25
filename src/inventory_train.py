@@ -26,66 +26,35 @@ TARGET_COL = "stock_qty_next_day"
 
 
 def build_features(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series]:
-    """Строит признаки для линейной регрессии.
-
-    Target: stock_qty_next_day.
-    Признаки описывают текущий день: остаток, продажи, поставки, цену,
-    промо-флаг, день недели и идентификаторы магазина/SKU.
-    """
+    """Build feature matrix and target vector."""
     df = df.copy()
 
     if TARGET_COL not in df.columns:
-    required_for_fallback = {"stock_qty", "delivery_qty", "sales_qty"}
+        required_for_fallback = {"stock_qty", "delivery_qty", "sales_qty"}
 
-    if required_for_fallback.issubset(df.columns):
-        df = df.copy()
-        df[TARGET_COL] = (
-            df["stock_qty"] + df["delivery_qty"] - df["sales_qty"]
-        ).clip(lower=0)
-        print(
-            f"[inventory_train] Target column '{TARGET_COL}' was missing; "
-            "created fallback target from stock_qty + delivery_qty - sales_qty."
-        )
-    else:
-        missing = sorted(required_for_fallback - set(df.columns))
-        raise ValueError(
-            f"В данных нет целевого столбца '{TARGET_COL}', "
-            f"и невозможно восстановить fallback-target. "
-            f"Отсутствуют колонки: {missing}"
-        )
+        if required_for_fallback.issubset(df.columns):
+            df[TARGET_COL] = (
+                df["stock_qty"] + df["delivery_qty"] - df["sales_qty"]
+            ).clip(lower=0)
 
-    df["date"] = pd.to_datetime(df["date"])
-    df["day_of_year"] = df["date"].dt.dayofyear
+            print(
+                f"[inventory_train] Target column '{TARGET_COL}' was missing; "
+                "created fallback target from stock_qty + delivery_qty - sales_qty."
+            )
+        else:
+            missing = sorted(required_for_fallback - set(df.columns))
+            raise ValueError(
+                f"В данных нет целевого столбца '{TARGET_COL}', "
+                f"и невозможно восстановить fallback-target. "
+                f"Отсутствуют колонки: {missing}"
+            )
 
-    if "day_of_week" not in df.columns:
-        df["day_of_week"] = df["date"].dt.dayofweek
+    missing_features = [col for col in FEATURE_COLS if col not in df.columns]
+    if missing_features:
+        raise ValueError(f"В данных нет признаков: {missing_features}")
 
-    optional_defaults = {
-        "delivery_qty": 0,
-        "price": 0.0,
-        "promo_flag": 0,
-    }
-    for col, default in optional_defaults.items():
-        if col not in df.columns:
-            df[col] = default
-
-    for col in ["store_id", "sku_id"]:
-        le = LabelEncoder()
-        df[col + "_enc"] = le.fit_transform(df[col].astype(str))
-
-    feature_cols = [
-        "store_id_enc",
-        "sku_id_enc",
-        "day_of_year",
-        "day_of_week",
-        "stock_qty",
-        "delivery_qty",
-        "price",
-        "promo_flag",
-    ]
-
-    X = df[feature_cols]
-    y = df[TARGET_COL]
+    X = df[FEATURE_COLS].copy()
+    y = df[TARGET_COL].copy()
 
     return X, y
 
