@@ -1,5 +1,7 @@
 """Валидация схемы и качества батча данных складских запасов."""
 
+from __future__ import annotations
+
 import json
 import pandas as pd
 from datetime import datetime
@@ -8,7 +10,17 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 REPORTS_DIR = REPO_ROOT / "reports"
 
-REQUIRED_COLUMNS = ["store_id", "sku_id", "date", "sales_qty", "stock_qty"]
+REQUIRED_COLUMNS = [
+    "date",
+    "store_id",
+    "sku_id",
+    "stock_qty",
+    "sales_qty",
+    "delivery_qty",
+    "price",
+    "promo_flag",
+    "stock_qty_next_day",
+]
 MIN_ROWS = 100
 MAX_NULL_RATE = 0.05
 
@@ -45,7 +57,7 @@ def validate(df: pd.DataFrame) -> dict:
                 results["passed"] = False
 
     # Отрицательные значения
-    for col in ["sales_qty", "stock_qty"]:
+    for col in ["sales_qty", "stock_qty", "delivery_qty", "stock_qty_next_day", "price"]:
         if col in df.columns:
             n_neg = (df[col] < 0).sum()
             if n_neg > 0:

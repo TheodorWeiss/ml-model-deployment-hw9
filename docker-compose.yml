@@ -20,13 +20,14 @@ x-airflow-env: &airflow-env
   AIRFLOW__CORE__LOAD_EXAMPLES: "false"
   AIRFLOW__WEBSERVER__SECRET_KEY: "hw9-secret-key-local"
   # S3 / MinIO настройки для DAG
-  AIRFLOW__CONN_AWS_DEFAULT: "aws://minioadmin:minioadmin@?host=http://minio:9000&region_name=us-east-1"
-  DZ9_USE_S3_SENSOR: "0"          # Переключить на "1" для режима MinIO/S3
+  AIRFLOW_CONN_AWS_DEFAULT: "aws://minioadmin:minioadmin@?endpoint_url=http%3A%2F%2Fminio%3A9000&region_name=us-east-1"
+  DZ9_USE_S3_SENSOR: "1"
+  DZ9_MINIO_BUCKET: "inventory-batches"
   DZ9_MINIO_ENDPOINT: "http://minio:9000"
   DZ9_MINIO_ACCESS_KEY: "minioadmin"
   DZ9_MINIO_SECRET_KEY: "minioadmin"
-  DZ9_MINIO_BUCKET: "inventory-batches"
   PYTHONPATH: "/opt/airflow"
+  _PIP_ADDITIONAL_REQUIREMENTS: "pandas==2.0.3 numpy==1.24.4 scikit-learn==1.3.2 scipy==1.10.1 matplotlib==3.7.5"
 
 services:
   postgres:
@@ -43,7 +44,7 @@ services:
       retries: 5
 
   minio:
-    image: minio/minio:RELEASE.2024-01-16T16-07-38Z
+    image: minio/minio:latest
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: minioadmin
@@ -60,7 +61,7 @@ services:
 
   # Создаёт бакет при старте
   minio-init:
-    image: minio/mc:RELEASE.2024-01-16T16-07-38Z
+    image: minio/mc:latest
     depends_on:
       minio:
         condition: service_healthy

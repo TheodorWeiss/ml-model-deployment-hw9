@@ -1,5 +1,7 @@
 """Загрузка и генерация синтетических данных складских запасов."""
 
+from __future__ import annotations
+
 import os
 import json
 import pandas as pd
