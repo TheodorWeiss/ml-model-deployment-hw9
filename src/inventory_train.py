@@ -35,7 +35,24 @@ def build_features(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series]:
     df = df.copy()
 
     if TARGET_COL not in df.columns:
-        raise ValueError(f"В данных нет целевого столбца '{TARGET_COL}'")
+    required_for_fallback = {"stock_qty", "delivery_qty", "sales_qty"}
+
+    if required_for_fallback.issubset(df.columns):
+        df = df.copy()
+        df[TARGET_COL] = (
+            df["stock_qty"] + df["delivery_qty"] - df["sales_qty"]
+        ).clip(lower=0)
+        print(
+            f"[inventory_train] Target column '{TARGET_COL}' was missing; "
+            "created fallback target from stock_qty + delivery_qty - sales_qty."
+        )
+    else:
+        missing = sorted(required_for_fallback - set(df.columns))
+        raise ValueError(
+            f"В данных нет целевого столбца '{TARGET_COL}', "
+            f"и невозможно восстановить fallback-target. "
+            f"Отсутствуют колонки: {missing}"
+        )
 
     df["date"] = pd.to_datetime(df["date"])
     df["day_of_year"] = df["date"].dt.dayofyear
