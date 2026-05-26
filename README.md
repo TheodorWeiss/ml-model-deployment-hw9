@@ -33,6 +33,7 @@ ml-model-deployment-hw9/
 ├── requirements.txt
 ├── docker-compose.yml
 ├── .gitignore
+├── HW9_Design_Вайс_ФС.ipynb
 │
 ├── dags/
 │   └── inventory_retrain_dag.py   ← Airflow DAG (CT loop)
