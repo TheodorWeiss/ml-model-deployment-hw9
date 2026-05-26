@@ -18,9 +18,10 @@ Airflow управляет ML-процессом, MinIO имитирует S3, T
 | **Задание 3** Деинсталляция инфраструктуры | `infra/README.md` | `terraform destroy` |
 | **Задание 3** CI/CD-проверки IaC | `.github/workflows/dz9-checks.yml` | `terraform fmt`, `init`, `validate`, `plan`, `plan -destroy` |
 | **Задание 4** SLI/SLO (3 уровня) | Раздел «Риски и SLI/SLO» ниже | Таблица с 3 уровнями |
-| **Задание 5** MDD (системная метрика) | `src/mdd_latency_test.py` | p95 latency, Mann–Whitney |
+| **Задание 5** MDD (системная метрика) | `src/mdd_latency_test.py` | p95 latency, Mann–Whitney U |
 | **Задание 5** ADR | `adr/0001-latency-mdd-decision.md` | Статус, контекст, решение |
 | **Задание 5** Отчёт теста | `reports/mdd_test_result.md` | p-value, δp95, решение |
+| **Задание 5** Визуализация статистического теста | [`reports/mdd_latency_distribution.png`](reports/mdd_latency_distribution.png) | Распределение latency, boxplot, SLO=300мс, critical=1000мс |
 
 ---
 

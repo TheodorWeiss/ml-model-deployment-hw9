@@ -35,3 +35,11 @@
 
 ---
 *Отчёт сгенерирован автоматически src/mdd_latency_test.py*
+
+## Визуализация
+
+Распределение reference latency и new latency сохранено в файле:
+
+![MDD latency distribution](mdd_latency_distribution.png)
+
+График показывает, что новая версия имеет существенно более высокую задержку, превышает SLO `300 ms` и содержит значения выше critical threshold `1000 ms`.
